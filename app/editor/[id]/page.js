@@ -54,6 +54,7 @@ export default function Editor({ params }) {
   const [resetKey, setResetKey] = useState(0);
   const [formKey, setFormKey] = useState(0);
   const [ytErr, setYtErr] = useState("");
+  const [pickMus, setPickMus] = useState("");
   const logRef = useRef(null);
   const v = useMemo(() => (row ? toV(row, { premium }) : null), [row, premium]);
 
@@ -95,7 +96,7 @@ export default function Editor({ params }) {
     const f = e.target.files[0]; e.target.value = ""; if (!f) return;
     if (f.size > 10 * 1024 * 1024) { toast("Ukuran lagu maksimal 10 MB"); return; }
     stopMusic(); const url = await upload(f, "lagu", true);
-    if (url) { setC((cc) => { cc.music = "upload"; cc.musicUrl = url; cc.musicName = f.name; }); toast("Lagu terunggah"); }
+    if (url) { setPickMus(""); setC((cc) => { cc.music = "upload"; cc.musicUrl = url; cc.musicName = f.name; }); toast("Lagu terunggah"); }
   };
 
   /* ---------- publish ---------- */
@@ -254,12 +255,17 @@ export default function Editor({ params }) {
           <details><summary>Musik <small>{{ contoh: "Instrumen contoh", upload: v.musicName || "Lagu sendiri", youtube: "YouTube", none: "Tanpa musik" }[v.music]}</small></summary><div className="fbody">
             <div className="toggles">
               {[["youtube", "Link YouTube"], ["upload", "Unggah MP3"], ["contoh", "Instrumen contoh"], ["none", "Tanpa musik"]].map(([m, l]) => (
-                <label className="tog" key={m}><input type="radio" name="mus" id={`mus-${m}`} checked={v.music === m} disabled={(m === "upload" && !v.musicUrl) || (m === "youtube" && !v.ytId)} onChange={() => { stopMusic(); setC((cc) => { cc.music = m; }); }} /> {l}</label>
+                <label className="tog" key={m}><input type="radio" name="mus" id={`mus-${m}`} checked={pickMus ? m === pickMus : v.music === m} onChange={() => {
+                  stopMusic();
+                  if (m === "youtube" && !v.ytId) { setPickMus("youtube"); setTimeout(() => document.getElementById("ytUrl")?.focus(), 0); return; }
+                  if (m === "upload" && !v.musicUrl) { setPickMus("upload"); document.getElementById("up-mus")?.click(); return; }
+                  setPickMus(""); setC((cc) => { cc.music = m; });
+                }} /> {l}</label>
               ))}
             </div>
             <label className="f">Link lagu dari YouTube
               <input id="ytUrl" type="url" inputMode="url" placeholder="https://youtu.be/... atau https://www.youtube.com/watch?v=..." defaultValue={v.ytUrl}
-                onChange={(e) => { const y = parseYouTube(e.target.value); setYtErr(e.target.value && !y ? "Link YouTube tidak dikenali. Salin dari tombol Bagikan di YouTube." : ""); stopMusic(); setC((cc) => { cc.ytUrl = e.target.value; if (y) { cc.ytId = y.id; cc.ytStart = y.start; cc.music = "youtube"; } else if (!e.target.value) { cc.ytId = ""; if (cc.music === "youtube") cc.music = "contoh"; } }); }} /></label>
+                onChange={(e) => { const y = parseYouTube(e.target.value); setYtErr(e.target.value && !y ? "Link YouTube tidak dikenali. Salin dari tombol Bagikan di YouTube." : ""); stopMusic(); setC((cc) => { cc.ytUrl = e.target.value; if (y) { cc.ytId = y.id; cc.ytStart = y.start; cc.music = "youtube"; setPickMus(""); } else if (!e.target.value) { cc.ytId = ""; if (cc.music === "youtube") cc.music = "contoh"; } }); }} /></label>
             {ytErr ? <span className="err">{ytErr}</span> : v.ytId ? <span className="hint">♪ Video terpasang{v.ytStart ? `, mulai dari detik ke-${v.ytStart}` : ""}. Tekan "Tutup ke sampul" lalu "Buka" di pratinjau untuk mendengarkan.</span> : <span className="hint">Tempel link dari tombol Bagikan di YouTube. Agar lagu mulai di bagian tertentu, pakai link dengan waktu (contoh: ...?t=45).</span>}
             <div className="upl"><label className="btn sm" htmlFor="up-mus">{busyUp === "lagu" ? "Mengunggah…" : "Atau unggah lagu (MP3)"}</label><input type="file" id="up-mus" accept="audio/*" onChange={onMusic} /><span className="hint">{v.musicName ? "♪ " + v.musicName : "Maksimal 10 MB"}</span></div>
           </div></details>
