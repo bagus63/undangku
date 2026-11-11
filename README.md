@@ -81,3 +81,5 @@ lib/invite.js         data desain & jenis acara + mesin penampil undangan
 lib/supabase/         koneksi Supabase (+ mock untuk uji coba)
 supabase/schema.sql   tabel, aturan keamanan, dan penyimpanan
 ```
+
+Halaman `/cek` menampilkan status koneksi ke Supabase untuk membantu mencari masalah saat pemasangan.
