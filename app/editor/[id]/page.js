@@ -2,7 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useInvitation } from "@/lib/useInvitation";
-import { JENIS, THEMES, TH, SECL, ACCENTS, LIMIT, AIQ, PENUTUP, toV, nmText, isDua, sampleContent, aiApply, stopMusic, esc } from "@/lib/invite";
+import { JENIS, THEMES, TH, SECL, ACCENTS, LIMIT, AIQ, PENUTUP, toV, nmText, isDua, sampleContent, aiApply, stopMusic, esc, parseYouTube } from "@/lib/invite";
 import { toast, shrinkToBlob, siteUrl } from "@/lib/ui";
 import InviteFrame from "@/components/InviteFrame";
 import Mini from "@/components/Mini";
@@ -53,6 +53,7 @@ export default function Editor({ params }) {
   const [busyUp, setBusyUp] = useState("");
   const [resetKey, setResetKey] = useState(0);
   const [formKey, setFormKey] = useState(0);
+  const [ytErr, setYtErr] = useState("");
   const logRef = useRef(null);
   const v = useMemo(() => (row ? toV(row, { premium }) : null), [row, premium]);
 
@@ -250,13 +251,17 @@ export default function Editor({ params }) {
             <label className="f">Alamat kirim kado (opsional)<textarea {...D("alamatKado")} /></label>
           </div></details>
 
-          <details><summary>Musik <small>{{ contoh: "Instrumen contoh", upload: v.musicName || "Lagu sendiri", none: "Tanpa musik" }[v.music]}</small></summary><div className="fbody">
+          <details><summary>Musik <small>{{ contoh: "Instrumen contoh", upload: v.musicName || "Lagu sendiri", youtube: "YouTube", none: "Tanpa musik" }[v.music]}</small></summary><div className="fbody">
             <div className="toggles">
-              {[["contoh", "Instrumen contoh"], ["upload", "Lagu sendiri"], ["none", "Tanpa musik"]].map(([m, l]) => (
-                <label className="tog" key={m}><input type="radio" name="mus" id={`mus-${m}`} checked={v.music === m} disabled={m === "upload" && !v.musicUrl} onChange={() => { stopMusic(); setC((cc) => { cc.music = m; }); }} /> {l}</label>
+              {[["youtube", "Link YouTube"], ["upload", "Unggah MP3"], ["contoh", "Instrumen contoh"], ["none", "Tanpa musik"]].map(([m, l]) => (
+                <label className="tog" key={m}><input type="radio" name="mus" id={`mus-${m}`} checked={v.music === m} disabled={(m === "upload" && !v.musicUrl) || (m === "youtube" && !v.ytId)} onChange={() => { stopMusic(); setC((cc) => { cc.music = m; }); }} /> {l}</label>
               ))}
             </div>
-            <div className="upl"><label className="btn sm" htmlFor="up-mus">{busyUp === "lagu" ? "Mengunggah…" : "Unggah lagu (MP3)"}</label><input type="file" id="up-mus" accept="audio/*" onChange={onMusic} /><span className="hint">{v.musicName ? "♪ " + v.musicName : "Maksimal 10 MB"}</span></div>
+            <label className="f">Link lagu dari YouTube
+              <input id="ytUrl" type="url" inputMode="url" placeholder="https://youtu.be/... atau https://www.youtube.com/watch?v=..." defaultValue={v.ytUrl}
+                onChange={(e) => { const y = parseYouTube(e.target.value); setYtErr(e.target.value && !y ? "Link YouTube tidak dikenali. Salin dari tombol Bagikan di YouTube." : ""); stopMusic(); setC((cc) => { cc.ytUrl = e.target.value; if (y) { cc.ytId = y.id; cc.ytStart = y.start; cc.music = "youtube"; } else if (!e.target.value) { cc.ytId = ""; if (cc.music === "youtube") cc.music = "contoh"; } }); }} /></label>
+            {ytErr ? <span className="err">{ytErr}</span> : v.ytId ? <span className="hint">♪ Video terpasang{v.ytStart ? `, mulai dari detik ke-${v.ytStart}` : ""}. Tekan "Tutup ke sampul" lalu "Buka" di pratinjau untuk mendengarkan.</span> : <span className="hint">Tempel link dari tombol Bagikan di YouTube. Agar lagu mulai di bagian tertentu, pakai link dengan waktu (contoh: ...?t=45).</span>}
+            <div className="upl"><label className="btn sm" htmlFor="up-mus">{busyUp === "lagu" ? "Mengunggah…" : "Atau unggah lagu (MP3)"}</label><input type="file" id="up-mus" accept="audio/*" onChange={onMusic} /><span className="hint">{v.musicName ? "♪ " + v.musicName : "Maksimal 10 MB"}</span></div>
           </div></details>
         </form>
 
